@@ -236,8 +236,6 @@ void leftISR()
     leftReverseTicks++;
     reverseDist = (unsigned long) ((float) leftReverseTicks / COUNTS_PER_REV * WHEEL_CIRC);
   }
-
-//  /*dbprint*/Serial.println("LEFT");
 }
 
 void rightISR()
@@ -255,17 +253,6 @@ void rightISR()
   else if(dir == BACKWARD){
     rightReverseTicks++;
   }
-
-//  Serial.print("LEFT: ");
-//  Serial.println(leftTicks);
-//  dbprint(leftForwardTicks);
-//  dbprint(rightForwardTicks);
-//  dbprint(leftReverseTicks);
-//  dbprint(rightReverseTicks);
-//  dbprint(leftForwardTicksTurns);
-//  dbprint(rightForwardTicksTurns);
-//  dbprint(leftReverseTicksTurns);
-//  dbprint(rightReverseTicksTurns);
 }
 
 // Set up the external interrupt pins INT0 and INT1
