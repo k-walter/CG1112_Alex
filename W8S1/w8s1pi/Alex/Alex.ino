@@ -1,9 +1,10 @@
 #include <serialize.h>
+
 #include <stdarg.h>
 
 #include "packet.h"
 #include "constants.h"
-
+//test
 typedef enum
 {
   STOP = 0,
@@ -24,6 +25,10 @@ volatile TDirection dir = STOP;
 
 #define COUNTS_PER_REV      195 // 185
 
+#define PIN5                (1<<5)
+#define PIN6                (1<<6)
+#define PIN2                (1<<2)
+#define PIN3                (1<<3)
 // Wheel circumference in cm.
 // We will use this to calculate forward/backward distance traveled
 // by taking revs * WHEEL_CIRC
@@ -240,6 +245,8 @@ void leftISR()
     leftReverseTicks++;
     reverseDist = (unsigned long) ((float) leftReverseTicks / COUNTS_PER_REV * WHEEL_CIRC);
   }
+
+//  dbprint("LEFT");
 }
 
 void rightISR()
@@ -342,6 +349,7 @@ void writeSerial(const char *buffer, int len)
 // Set up Alex's motors. Right now this is empty, but
 // later you will replace it with code to set up the PWMs
 // to drive the motors.
+ 
 void setupMotors()
 {
   /* Our motor set up is:
@@ -350,6 +358,22 @@ void setupMotors()
         B1IN - Pin 10, PB2, OC1B
         B2In - pIN 11, PB3, OC2A
   */
+  DDRB |= (PIN6 | PIN5);
+  DDRD |= (PIN2 | PIN3);
+  
+  TCNT0 = 0;
+  TCNT1 = 0;
+  TCNT2 = 0;
+  TIMSK0 |= 0b110; // OCIEA = 1 OCIEB = 1
+  TIMSK1 |= 0b100;
+  TIMSK2 |= 0b010;
+ 
+  TCCR0B = 0b00000011;
+  TCCR1B = 0b00000011;
+  TCCR2B = 0b00000011;
+  
+  sei();
+
 }
 
 // Start the PWM for Alex's motors.
@@ -397,10 +421,17 @@ void forward(float dist, float speed = 75)
   // RF = Right forward pin, RR = Right reverse pin
   // This will be replaced later with bare-metal code.
 
-  analogWrite(LF, (float)val * leftVal);
-  analogWrite(RF, val);
-  analogWrite(LR, 0);
-  analogWrite(RR, 0);
+  //analogWrite(LF, (float)val * leftVal);
+  //analogWrite(RF, val);
+  //analogWrite(LR, 0);
+  //analogWrite(RR, 0);
+  
+  OCR0A = val;
+  OCR0B = 0;
+  OCR2A = 0;
+  OCR1B = (float)val * leftVal;
+  TCCR0A = 0b10000001;
+  TCCR1A = 0b10000001;
 }
 
 // Reverse Alex "dist" cm at speed "speed".
@@ -427,10 +458,16 @@ void reverse(float dist, float speed = 75)
   // LF = Left forward pin, LR = Left reverse pin
   // RF = Right forward pin, RR = Right reverse pin
   // This will be replaced later with bare-metal code.
-  analogWrite(LR, (float)val * leftVal);
-  analogWrite(RR, val);
-  analogWrite(LF, 0);
-  analogWrite(RF, 0);
+//  analogWrite(LR, (float)val * leftVal);
+//  analogWrite(RR, val);
+//  analogWrite(LF, 0);
+//  analogWrite(RF, 0);
+  OCR0A = 0;
+  OCR0B = val;
+  OCR2A = (float)val * leftVal;
+  OCR1B = 0;
+  TCCR0A = 0b00100001;
+  TCCR1A = 0b10000001;
 }
 
 // Turn Alex left "ang" degrees at speed "speed".
@@ -451,10 +488,16 @@ void left(float ang, float speed = 90)
   // We will also replace this code with bare-metal later.
   // To turn left we reverse the left wheel and move
   // the right wheel forward.
-  analogWrite(LR, (float)val * leftVal);
-  analogWrite(RF, val);
-  analogWrite(LF, 0);
-  analogWrite(RR, 0);
+//  analogWrite(LR, (float)val * leftVal);
+//  analogWrite(RF, val);
+//  analogWrite(LF, 0);
+//  analogWrite(RR, 0);
+  OCR0A = val;
+  OCR0B = 0;
+  OCR2A = (float)val * leftVal;
+  OCR1B = 0;
+  TCCR0A = 0b10000001;
+  TCCR2A = 0b00100001;
 }
 
 // Turn Alex right "ang" degrees at speed "speed".
@@ -475,10 +518,16 @@ void right(float ang, float speed = 90)
   // We will also replace this code with bare-metal later.
   // To turn right we reverse the right wheel and move
   // the left wheel forward.
-  analogWrite(RR, val);
-  analogWrite(LF, (float)val * leftVal);
-  analogWrite(LR, 0);
-  analogWrite(RF, 0);
+//  analogWrite(RR, val);
+//  analogWrite(LF, (float)val * leftVal);
+//  analogWrite(LR, 0);
+//  analogWrite(RF, 0);
+  OCR0A = 0;
+  OCR0B = val;
+  OCR2A = 0;
+  OCR1B = (float)val * leftVal;
+  TCCR0A = 0b00100001;
+  TCCR1A = 0b10000001;
 }
 
 // Stop Alex. To replace with bare-metal code later.
@@ -486,10 +535,14 @@ void stop()
 {
   dir = STOP;
 
-  analogWrite(LF, 0);
-  analogWrite(LR, 0);
-  analogWrite(RF, 0);
-  analogWrite(RR, 0);
+//  analogWrite(LF, 0);
+//  analogWrite(LR, 0);
+//  analogWrite(RF, 0);
+//  analogWrite(RR, 0);
+  OCR0A = 0;
+  OCR0B = 0;
+  OCR2A = 0;
+  OCR1B = 0;  
 }
 
 /*
