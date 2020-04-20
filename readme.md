@@ -39,8 +39,8 @@ me@master:~$ ssh-copy-id pi@slave
 
 - Export ROS settings in respective setup.bash
 ```console
-me@master:~$ sudo echo -e "export ROS_MASTER_URI = http://$(master_ip):11311/\nexport ROS_IP = $(master_ip)\nexport ROS_HOSTNAME = master" >> /etc/hosts
-pi@slave:~$ sudo echo -e "export ROS_MASTER_URI = http://$(master_ip):11311/\nexport ROS_IP = $(slave_ip)\nexport ROS_HOSTNAME = slave" >> /etc/hosts
+me@master:~$ sudo echo -e "export ROS_MASTER_URI = http://$(master_ip):11311/\nexport ROS_IP = $(master_ip)\nexport ROS_HOSTNAME = master" >> setup.bash
+pi@slave:~$ sudo echo -e "export ROS_MASTER_URI = http://$(master_ip):11311/\nexport ROS_IP = $(slave_ip)\nexport ROS_HOSTNAME = slave" >> setup.bash
 ```
 
 - In master, replace view_slam.launch in "slam\src\rplidar_ros\launch\" with this repo's. Edit fields labelled "HERE" in view_slam.launch
@@ -70,16 +70,6 @@ pi@slave:~/W8S1$ . move.bash
 - Run view_slam.launch, which should open rviz.
 - If there are errors, disable firewall and check dependencies.
 ```console
-me@master:~$ . setup_bash
-Linux raspberrypi 4.14.98-v7+ #1200 SMP Tue Feb 12 20:27:48 GMT 2019 armv7l
-
-The programs included with the Debian GNU/Linux system are free software;
-the exact distribution terms for each program are described in the
-individual files in /usr/share/doc/*/copyright.
-
-Debian GNU/Linux comes with ABSOLUTELY NO WARRANTY, to the extent
-permitted by applicable law.
-Last login:
 pi@slave:~$ . slam/devel/setup.bash
 pi@slave:~$ roslaunch rplidar_ros view_slam.launch
 ... logging to
