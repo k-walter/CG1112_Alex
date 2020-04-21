@@ -22,7 +22,6 @@ volatile TDirection dir = STOP;
 
 // Number of ticks per revolution from the
 // wheel encoder.
-
 #define COUNTS_PER_REV      195 // 185
 
 #define PIN5                (1<<5)
@@ -273,10 +272,8 @@ void setupEINT()
   // Use bare-metal to configure pins 2 and 3 to be
   // falling edge triggered. Remember to enable
   // the INT0 and INT1 interrupts.
-  cli();
   EICRA |= 0b00001010;
   EIMSK |= 0b00000011;
-  sei();
 }
 
 // Implement the external interrupt ISRs below.
@@ -305,6 +302,41 @@ void setupSerial()
 {
   // To replace later with bare-metal.
   Serial.begin(9600);
+
+  // Try u2x mode first
+  UBRR0 = 207; // = (F_CPU / 4 / baud - 1) / 2
+
+  uint16_t baud_setting = (F_CPU / 4 / baud - 1) / 2;
+  *_ucsra = 1 << U2X0;
+
+  // hardcoded exception for 57600 for compatibility with the bootloader
+  // shipped with the Duemilanove and previous boards and the firmware
+  // on the 8U2 on the Uno and Mega 2560. Also, The baud_setting cannot
+  // be > 4095, so switch back to non-u2x mode if the baud rate is too
+  // low.
+  if (((F_CPU == 16000000UL) && (baud == 57600)) || (baud_setting >4095))
+  {
+    *_ucsra = 0;
+    baud_setting = (F_CPU / 8 / baud - 1) / 2;
+  }
+
+  // assign the baud_setting, a.k.a. ubrr (USART Baud Rate Register)
+  *_ubrrh = baud_setting >> 8;
+  *_ubrrl = baud_setting;
+
+  _written = false;
+
+  //set the data bits, parity, and stop bits
+#if defined(__AVR_ATmega8__)
+  config |= 0x80; // select UCSRC register (shared with UBRRH)
+#endif
+  *_ucsrc = config;
+  
+  sbi(*_ucsrb, RXEN0);
+  sbi(*_ucsrb, TXEN0);
+  sbi(*_ucsrb, RXCIE0);
+  cbi(*_ucsrb, UDRIE0);
+
 }
 
 // Start the serial connection. For now we are using
@@ -344,12 +376,7 @@ void writeSerial(const char *buffer, int len)
 /*
    Alex's motor drivers.
 
-*/
-
-// Set up Alex's motors. Right now this is empty, but
-// later you will replace it with code to set up the PWMs
-// to drive the motors.
- 
+*/ 
 void setupMotors()
 {
   /* Our motor set up is:
@@ -373,19 +400,19 @@ void startMotors()
 {
   // Right motor
   TCNT0 = 0; // counter
-  TIMSK0 |= 0b110; // interrupt on OCIEA = 1 OCIEB = 1
+  // TIMSK0 = 0b110; // interrupt on OCIEA = 1 OCIEB = 1
   OCR0A = OCR0B = 0; // compare
   TCCR0B = 0b00000011; // prescalar 64
   // TCCR0A = 0b10100001; // sets Phase Correct, set/clear for OC0B, OC0A
 
   // Left motor
-  TCNT2 = TCNT1 = 0; // counter
-  TIMSK2 |= 0b010; // interrupt on OCIE2A
-  TIMSK1 |= 0b100; // interrupt on OCIE1B
-  OCR2A = OCR1B = 0; // compare
-  TCCR2B = TCCR1B = 0b00000011; // prescalar 64
-  // TCCR2A = 0b10000001; // sets Phase Correct, set/clear for OC2A
-  // TCCR1A = 0b00100001; // sets Phase Correct, set/clear for OC1B
+  TCNT2 = TCNT1H = TCNT1L = 0;
+//  TIMSK2 |= 0b010;
+//  TIMSK1 |= 0b100;
+  OCR2A = OCR1B = 0;
+  TCCR2B = TCCR1B = 0b11;
+//  TCCR2A = 0b10000001;
+//  TCCR1A = 0b00100001;
 }
 
 // Convert percentages to PWM values
@@ -423,11 +450,14 @@ void forward(float dist, float speed = 75)
   //analogWrite(RR, 0);
   
   // Right motor
-  OCR0A = val; OCR0B = 0; // compare
-  TCCR0A = 0b10000001; // sets Phase Correct, set/clear for OC0A
+  TCCR0A = (TCCR0A & 0b00001111) | 0b10000000; // sets Phase Correct, set/clear for OC0A
+  OCR0A = val; PORTD &= ~PIN5; // compare
 
   // Left motor
-  OCR2A = 0; OCR1B = (float)val * leftVal; // compare
+  TCCR2A &= 0b00001111;
+  TCCR1A = (TCCR1A & 0b00001111) | 0b00100000; // sets Phase Correct, set/clear for OC1B
+  OCR1B = (float)val * leftVal; // compare
+  PORTB &= ~PIN3;
 }
 
 // Reverse Alex "dist" cm at speed "speed".
@@ -446,24 +476,20 @@ void reverse(float dist, float speed = 75)
   dir = BACKWARD;
 
   int val = pwmVal(speed);
-
-  // For now we will ignore dist and
-  // reverse indefinitely. We will fix this
-  // in Week 9.
-
-  // LF = Left forward pin, LR = Left reverse pin
-  // RF = Right forward pin, RR = Right reverse pin
-  // This will be replaced later with bare-metal code.
 //  analogWrite(LR, (float)val * leftVal);
 //  analogWrite(RR, val);
 //  analogWrite(LF, 0);
 //  analogWrite(RF, 0);
-  OCR0A = 0;
-  OCR0B = val;
-  OCR1A = (float)val * leftVal;
-  OCR1B = 0;
-  TCCR0A = 0b00100001;
-  TCCR1A = 0b10000001;
+
+  // Right motor
+  TCCR0A = (TCCR0A & 0b00001111) | 0b00100000; // sets Phase Correct, set/clear for OC0A
+  OCR0B = val; PORTD &= ~PIN6; // compare
+
+  // Left motor
+  TCCR1A &= 0b00001111;
+  TCCR2A = (TCCR2A & 0b00001111) | 0b10000000; // sets Phase Correct, set/clear for OC1B
+  OCR2A = (float)val * leftVal; // compare
+  PORTB &= ~PIN2;
 }
 
 // Turn Alex left "ang" degrees at speed "speed".
@@ -479,21 +505,20 @@ void left(float ang, float speed = 90)
   dir = LEFT;
 
   int val = pwmVal(speed);
-
-  // For now we will ignore ang. We will fix this in Week 9.
-  // We will also replace this code with bare-metal later.
-  // To turn left we reverse the left wheel and move
-  // the right wheel forward.
 //  analogWrite(LR, (float)val * leftVal);
 //  analogWrite(RF, val);
 //  analogWrite(LF, 0);
 //  analogWrite(RR, 0);
-  OCR0A = val;
-  OCR0B = 0;
-  OCR1A = (float)val * leftVal;
-  OCR1B = 0;
-  TCCR0A = 0b10000001;
-  TCCR1A = 0b00100001;
+
+  // Right motor
+  TCCR0A = (TCCR0A & 0b00001111) | 0b10000000; // sets Phase Correct, set/clear for OC0A
+  OCR0A = val; PORTD &= ~PIN5; // compare
+
+  // Left motor
+  TCCR1A &= 0b00001111;
+  TCCR2A = (TCCR2A & 0b00001111) | 0b10000000; // sets Phase Correct, set/clear for OC1B
+  OCR2A = (float)val * leftVal; // compare
+  PORTB &= ~PIN2;
 }
 
 // Turn Alex right "ang" degrees at speed "speed".
@@ -509,21 +534,20 @@ void right(float ang, float speed = 90)
   dir = RIGHT;
 
   int val = pwmVal(speed);
-
-  // For now we will ignore ang. We will fix this in Week 9.
-  // We will also replace this code with bare-metal later.
-  // To turn right we reverse the right wheel and move
-  // the left wheel forward.
 //  analogWrite(RR, val);
 //  analogWrite(LF, (float)val * leftVal);
 //  analogWrite(LR, 0);
 //  analogWrite(RF, 0);
-  OCR0A = 0;
-  OCR0B = val;
-  OCR1A = 0;
-  OCR1B = (float)val * leftVal;
-  TCCR0A = 0b00100001;
-  TCCR1A = 0b10000001;
+
+  // Right motor
+  TCCR0A = (TCCR0A & 0b00001111) | 0b00100000; // sets Phase Correct, set/clear for OC0A
+  OCR0B = val; PORTD &= ~PIN6; // compare
+
+  // Left motor
+  TCCR2A &= 0b00001111;
+  TCCR1A = (TCCR1A & 0b00001111) | 0b00100000; // sets Phase Correct, set/clear for OC1B
+  OCR1B = (float)val * leftVal; // compare
+  PORTB &= ~PIN3;
 }
 
 // Stop Alex. To replace with bare-metal code later.
@@ -535,10 +559,15 @@ void stop()
 //  analogWrite(LR, 0);
 //  analogWrite(RF, 0);
 //  analogWrite(RR, 0);
-  OCR0A = 0;
-  OCR0B = 0;
-  OCR1A = 0;
-  OCR1B = 0;  
+
+  // Right motor
+  TCCR0A &= 0b00001111;
+  PORTD &= ~(PIN5 | PIN6); // compare
+
+  // Left motor
+  TCCR2A &= 0b00001111;
+  TCCR1A &= 0b00001111;
+  PORTB &= ~(PIN2 | PIN3);
 }
 
 /*
@@ -692,16 +721,12 @@ void handlePacket(TPacket *packet)
 
 void loop() {
 
-  // Uncomment the code below for Step 2 of Activity 3 in Week 8 Studio 2
+  // Test Code
+  // left(0, 50);
+  // while(1);
+  // return;
 
-  forward(0, 30);
-  return;
-
-  // Uncomment the code below for Week 9 Studio 2
-
-  // put your main code here, to run repeatedly:
   TPacket recvPacket; // This holds commands from the Pi
-
   TResult result = readPacket(&recvPacket);
 
   if (result == PACKET_OK)
