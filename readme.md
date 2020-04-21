@@ -35,7 +35,7 @@ The key's randomart image is:
 +----[SHA256]-----+
 me@master:~$ ssh-copy-id pi@slave
 ```
-- Install and make rplidar_ros on both machines as per studio
+- Install and make rplidar_ros on both machines as per studio. Follow Studio 11 pg 2-4 to reduce power usage on RPi.
 
 - Export ROS settings in respective setup.bash
 ```console

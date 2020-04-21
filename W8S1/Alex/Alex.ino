@@ -311,39 +311,39 @@ void setupSerial()
   // To replace later with bare-metal.
   Serial.begin(9600);
 
-  // Try u2x mode first
-  UBRR0 = 207; // = (F_CPU / 4 / baud - 1) / 2
+//   // Try u2x mode first
+//   UBRR0 = 207; // = (F_CPU / 4 / baud - 1) / 2
 
-  uint16_t baud_setting = (F_CPU / 4 / baud - 1) / 2;
-  *_ucsra = 1 << U2X0;
+//   uint16_t baud_setting = (F_CPU / 4 / baud - 1) / 2;
+//   *_ucsra = 1 << U2X0;
 
-  // hardcoded exception for 57600 for compatibility with the bootloader
-  // shipped with the Duemilanove and previous boards and the firmware
-  // on the 8U2 on the Uno and Mega 2560. Also, The baud_setting cannot
-  // be > 4095, so switch back to non-u2x mode if the baud rate is too
-  // low.
-  if (((F_CPU == 16000000UL) && (baud == 57600)) || (baud_setting >4095))
-  {
-    *_ucsra = 0;
-    baud_setting = (F_CPU / 8 / baud - 1) / 2;
-  }
+//   // hardcoded exception for 57600 for compatibility with the bootloader
+//   // shipped with the Duemilanove and previous boards and the firmware
+//   // on the 8U2 on the Uno and Mega 2560. Also, The baud_setting cannot
+//   // be > 4095, so switch back to non-u2x mode if the baud rate is too
+//   // low.
+//   if (((F_CPU == 16000000UL) && (baud == 57600)) || (baud_setting >4095))
+//   {
+//     *_ucsra = 0;
+//     baud_setting = (F_CPU / 8 / baud - 1) / 2;
+//   }
 
-  // assign the baud_setting, a.k.a. ubrr (USART Baud Rate Register)
-  *_ubrrh = baud_setting >> 8;
-  *_ubrrl = baud_setting;
+//   // assign the baud_setting, a.k.a. ubrr (USART Baud Rate Register)
+//   *_ubrrh = baud_setting >> 8;
+//   *_ubrrl = baud_setting;
 
-  _written = false;
+//   _written = false;
 
-  //set the data bits, parity, and stop bits
-#if defined(__AVR_ATmega8__)
-  config |= 0x80; // select UCSRC register (shared with UBRRH)
-#endif
-  *_ucsrc = config;
+//   //set the data bits, parity, and stop bits
+// #if defined(__AVR_ATmega8__)
+//   config |= 0x80; // select UCSRC register (shared with UBRRH)
+// #endif
+//   *_ucsrc = config;
   
-  sbi(*_ucsrb, RXEN0);
-  sbi(*_ucsrb, TXEN0);
-  sbi(*_ucsrb, RXCIE0);
-  cbi(*_ucsrb, UDRIE0);
+//   sbi(*_ucsrb, RXEN0);
+//   sbi(*_ucsrb, TXEN0);
+//   sbi(*_ucsrb, RXCIE0);
+//   cbi(*_ucsrb, UDRIE0);
 
 }
 
@@ -694,7 +694,6 @@ void WDT_off(void)
 {
   /* Global interrupt should be turned OFF here if not
   already done so */
-  cli();
   /* Clear WDRF in MCUSR */
   MCUSR &= ~(1<<WDRF);
   /* Write logical one to WDCE and WDE */
@@ -706,7 +705,6 @@ void WDT_off(void)
   /* Global interrupt should be turned ON here if
   subsequent operations after calling this function do
   not require turning off global interrupt */
-  sei();
 }
 
 void setupPowerSaving()
@@ -758,6 +756,7 @@ void setup() {
   setupMotors();
   startMotors();
   enablePullups();
+  // Power Managment
   initializeState();
   setupPowerSaving();
   sei();
@@ -795,8 +794,6 @@ void loop() {
   TPacket recvPacket; // This holds commands from the Pi
   TResult result = readPacket(&recvPacket);
   
-  putArduinoToIdle();
-  
   if (result == PACKET_OK)
     handlePacket(&recvPacket);
   else if (result == PACKET_BAD)
@@ -808,7 +805,9 @@ void loop() {
     sendBadChecksum();
   }
 
-  if (deltaDist > 0)
+  if (deltaDist <= 0) 
+        putArduinoToIdle();
+  else
   {
     switch (dir) {
       case FORWARD:
