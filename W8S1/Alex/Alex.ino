@@ -1,10 +1,20 @@
 #include <serialize.h>
-
+#include <avr/sleep.h>
 #include <stdarg.h>
 
 #include "packet.h"
 #include "constants.h"
-//test
+
+#define PRR_TWI_MASK            0b10000000
+#define PRR_SPI_MASK            0b00000100
+#define ADCSRA_ADC_MASK         0b10000000
+#define PRR_ADC_MASK            0b00000001
+#define PRR_TIMER2_MASK         0b01000000
+#define PRR_TIMER0_MASK         0b00100000
+#define PRR_TIMER1_MASK         0b00001000
+#define SMCR_SLEEP_ENABLE_MASK  0b00000001
+#define SMCR_IDLE_MODE_MASK     0b11110001
+
 typedef enum
 {
   STOP = 0,
@@ -244,8 +254,6 @@ void leftISR()
     leftReverseTicks++;
     reverseDist = (unsigned long) ((float) leftReverseTicks / COUNTS_PER_REV * WHEEL_CIRC);
   }
-
-//  dbprint("LEFT");
 }
 
 void rightISR()
@@ -666,8 +674,6 @@ void waitForHello()
     {
       if (hello.packetType == PACKET_TYPE_HELLO)
       {
-
-
         sendOK();
         exit = 1;
       }
@@ -683,6 +689,65 @@ void waitForHello()
   } // !exit
 }
 
+// Power reduction code
+void WDT_off(void)
+{
+  /* Global interrupt should be turned OFF here if not
+  already done so */
+  cli();
+  /* Clear WDRF in MCUSR */
+  MCUSR &= ~(1<<WDRF);
+  /* Write logical one to WDCE and WDE */
+  /* Keep old prescaler setting to prevent unintentional
+  time-out */
+  WDTCSR |= (1<<WDCE) | (1<<WDE);
+  /* Turn off WDT */
+  WDTCSR = 0x00;
+  /* Global interrupt should be turned ON here if
+  subsequent operations after calling this function do
+  not require turning off global interrupt */
+  sei();
+}
+
+void setupPowerSaving()
+{
+  // Turn off the Watchdog Timer
+  WDT_off();
+  // Modify PRR to shut down TWI
+  PRR |= PRR_TWI_MASK;
+  // Modify PRR to shut down SPICG1112 AY1920S2 Week 11 – Studio 1
+  PRR |= PRR_SPI_MASK;
+  // Modify ADCSRA to disable ADC,
+  // then modify PRR to shut down ADC
+  ADCSRA &= ~ADCSRA_ADC_MASK;
+  PRR |= PRR_ADC_MASK;
+  // Set the SMCR to choose the IDLE sleep mode
+  // Do not set the Sleep Enable (SE) bit yet
+  SMCR &= SMCR_IDLE_MODE_MASK;
+  // Set Port B Pin 5 as output pin, then write a logic LOW
+  // to it so that the LED tied to Arduino's Pin 13 is OFF.
+  DDRB |= PIN5;
+  PORTB &= ~PIN5;
+}
+
+void putArduinoToIdle()
+{
+  // Modify PRR to shut down TIMER 0, 1, and 2
+  PRR |= (PRR_TIMER2_MASK | PRR_TIMER0_MASK | PRR_TIMER1_MASK);
+  // Modify SE bit in SMCR to enable (i.e., allow) sleep
+  SMCR |=  SMCR_SLEEP_ENABLE_MASK;
+  // The following function puts ATmega328P’s MCU into sleep;
+  // it wakes up from sleep when USART serial data arrives
+  sleep_cpu();
+  // Modify SE bit in SMCR to disable (i.e., disallow) sleep
+  SMCR &= ~SMCR_SLEEP_ENABLE_MASK;
+  // Modify PRR to power up TIMER 0, 1, and 2
+  PRR &= ~PRR_TIMER2_MASK;
+  PRR &= ~PRR_TIMER0_MASK;
+  PRR &= ~PRR_TIMER1_MASK;
+}
+
+
 void setup() {
   // put your setup code here, to run once:
 
@@ -694,6 +759,7 @@ void setup() {
   startMotors();
   enablePullups();
   initializeState();
+  setupPowerSaving();
   sei();
 }
 
@@ -728,7 +794,9 @@ void loop() {
 
   TPacket recvPacket; // This holds commands from the Pi
   TResult result = readPacket(&recvPacket);
-
+  
+  putArduinoToIdle();
+  
   if (result == PACKET_OK)
     handlePacket(&recvPacket);
   else if (result == PACKET_BAD)
@@ -749,6 +817,7 @@ void loop() {
           deltaDist = 0;
           newDist = 0;
           stop();
+          putArduinoToIdle();
         }
         break;
       case BACKWARD:
@@ -757,18 +826,21 @@ void loop() {
           deltaDist = 0;
           newDist = 0;
           stop();
+          putArduinoToIdle();
         }
         break;
       case STOP:
         deltaDist = 0;
         newDist = 0;
         stop();
+        putArduinoToIdle();
         break;
       case LEFT:
         if (leftRev >= newDist) {
           deltaDist = 0;
           newDist = 0;
           stop();
+          putArduinoToIdle();
         }
         break;
       case RIGHT:
@@ -776,9 +848,9 @@ void loop() {
           deltaDist = 0;
           newDist = 0;
           stop();
+          putArduinoToIdle();
         }
         break;
     }
   }
-
 }
