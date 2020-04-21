@@ -1,6 +1,9 @@
 # CG1112 19/20 S2 Alex
 Codes from Group 4-3-2.
 
+## Youtube demo video
+- https://youtu.be/zdC5WwNk6z0
+
 ## Installation
 - Take note of master (PC) and slave (Alex) IP Address
 ```console
