@@ -42,8 +42,8 @@ me@master:~$ ssh-copy-id pi@slave
 
 - Export ROS settings in respective setup.bash
 ```console
-me@master:~$ sudo echo -e "export ROS_MASTER_URI = http://$(master_ip):11311/\nexport ROS_IP = $(master_ip)\nexport ROS_HOSTNAME = master" >> setup.bash
-pi@slave:~$ sudo echo -e "export ROS_MASTER_URI = http://$(master_ip):11311/\nexport ROS_IP = $(slave_ip)\nexport ROS_HOSTNAME = slave" >> setup.bash
+me@master:~$ echo -e "export ROS_MASTER_URI = http://$(master_ip):11311/\nexport ROS_IP = $(master_ip)\nexport ROS_HOSTNAME = master" >> setup.bash
+pi@slave:~$ echo -e "export ROS_MASTER_URI = http://$(master_ip):11311/\nexport ROS_IP = $(slave_ip)\nexport ROS_HOSTNAME = slave" >> setup.bash
 ```
 
 - In master, replace Laptop/view_slam.launch from this repo to "slam\src\rplidar_ros\launch\". Edit fields labelled "HERE" in view_slam.launch
@@ -66,7 +66,7 @@ Debian GNU/Linux comes with ABSOLUTELY NO WARRANTY, to the extent
 permitted by applicable law.
 Last login:
 pi@slave:~$ cd ~/Pi
-pi@slave:~/W8S1$ . move.bash
+pi@slave:~/Pi$ . move.bash
 ```
 
 ### Hector SLAM
