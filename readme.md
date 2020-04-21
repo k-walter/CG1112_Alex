@@ -1,4 +1,5 @@
 # Installation
+//test
 - Take note of master (PC) and slave (Alex) IP Address
 ```console
 me@master:~$ hostname -I
