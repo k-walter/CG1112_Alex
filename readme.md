@@ -1,4 +1,7 @@
-# Installation
+# CG1112 19/20 S2 Alex
+Codes from Group 4-3-2.
+
+## Installation
 - Take note of master (PC) and slave (Alex) IP Address
 ```console
 me@master:~$ hostname -I
@@ -47,9 +50,9 @@ pi@slave:~$ sudo echo -e "export ROS_MASTER_URI = http://$(master_ip):11311/\nex
 
 - In slave, copy Pi/move.bash
 
-# Getting Started
+## Getting Started
 
-## Movement Terminal
+### Movement Terminal
 SSH to slave and run move.bash in Pi
 ```console
 me@master:~$ ssh pi@slave
@@ -66,7 +69,7 @@ pi@slave:~$ cd ~/Pi
 pi@slave:~/W8S1$ . move.bash
 ```
 
-## Hector SLAM
+### Hector SLAM
 - Run view_slam.launch, which should open rviz.
 - If there are errors, disable firewall and check dependencies.
 ```console
