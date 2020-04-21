@@ -1,4 +1,4 @@
-# Setup Checklist
+# Installation
 - Take note of master (PC) and slave (Alex) IP Address
 ```console
 me@master:~$ hostname -I
@@ -47,7 +47,7 @@ pi@slave:~$ sudo echo -e "export ROS_MASTER_URI = http://$(master_ip):11311/\nex
 
 - In slave, copy W8S1
 
-# Runtime Checklist
+# Getting Started
 
 ## Movement Terminal
 SSH to slave and run move.bash in W8S1
@@ -133,5 +133,5 @@ process[rviz-1]: started with pid [4498]
 [slave-0]: process[hector_height_mapping-3]: started with pid [12131]
 [slave-0]: ... done launching nodes
 ```
-- In RViz, select Displays\Map\Unreliable
-- For convenience, close sidebars and File\Save config
+- In RViz, select Displays/Map/Unreliable
+- For convenience, close sidebars and File/Save config
