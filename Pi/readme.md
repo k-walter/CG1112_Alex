@@ -43,14 +43,14 @@ me@master:~$ sudo echo -e "export ROS_MASTER_URI = http://$(master_ip):11311/\ne
 pi@slave:~$ sudo echo -e "export ROS_MASTER_URI = http://$(master_ip):11311/\nexport ROS_IP = $(slave_ip)\nexport ROS_HOSTNAME = slave" >> setup.bash
 ```
 
-- In master, replace view_slam.launch in "slam\src\rplidar_ros\launch\" with this repo's. Edit fields labelled "HERE" in view_slam.launch
+- In master, replace Laptop/view_slam.launch from this repo to "slam\src\rplidar_ros\launch\". Edit fields labelled "HERE" in view_slam.launch
 
-- In slave, copy W8S1
+- In slave, copy Pi/move.bash
 
 # Getting Started
 
 ## Movement Terminal
-SSH to slave and run move.bash in W8S1
+SSH to slave and run move.bash in Pi
 ```console
 me@master:~$ ssh pi@slave
 Linux raspberrypi 4.14.98-v7+ #1200 SMP Tue Feb 12 20:27:48 GMT 2019 armv7l
@@ -62,7 +62,7 @@ individual files in /usr/share/doc/*/copyright.
 Debian GNU/Linux comes with ABSOLUTELY NO WARRANTY, to the extent
 permitted by applicable law.
 Last login:
-pi@slave:~$ cd ~/W8S1
+pi@slave:~$ cd ~/Pi
 pi@slave:~/W8S1$ . move.bash
 ```
 
