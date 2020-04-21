@@ -353,15 +353,17 @@ void writeSerial(const char *buffer, int len)
 void setupMotors()
 {
   /* Our motor set up is:
-        A1IN - Pin 5, PD5, OC0B
-        A2IN - Pin 6, PD6, OC0A
-        B1IN - Pin 10, PB2, OC1B
-        B2In - pIN 11, PB3, OC1A
-  */
-  DDRB |= (PIN6 | PIN5);
-  DDRD |= (PIN2 | PIN3);
-  
+        RR  A1IN - Pin 5, PD5, OC0B
+        RF  A2IN - Pin 6, PD6, OC0A
+        LF  B1IN - Pin 10, PB2, OC1B
+        LR  B2In - pIN 11, PB3, OC2A
 
+        OLD : 
+        LF  B1IN - Pin 3, PD3, OC2B
+  */
+  DDRD |= (PIN6 | PIN5);
+  DDRB |= (PIN3 | PIN2);
+  // PORTB = PORTD = 0;
 }
 
 // Start the PWM for Alex's motors.
@@ -369,15 +371,21 @@ void setupMotors()
 // blank.
 void startMotors()
 {
-  TCNT0 = 0;
-  TCNT1 = 0;
-  
-  TIMSK0 |= 0b110; // OCIEA = 1 OCIEB = 1
-  TIMSK1 |= 0b110;
-  
-  TCCR0B = 0b00000011;
-  TCCR1B = 0b00000011;
-  
+  // Right motor
+  TCNT0 = 0; // counter
+  TIMSK0 |= 0b110; // interrupt on OCIEA = 1 OCIEB = 1
+  OCR0A = OCR0B = 0; // compare
+  TCCR0B = 0b00000011; // prescalar 64
+  // TCCR0A = 0b10100001; // sets Phase Correct, set/clear for OC0B, OC0A
+
+  // Left motor
+  TCNT2 = TCNT1 = 0; // counter
+  TIMSK2 |= 0b010; // interrupt on OCIE2A
+  TIMSK1 |= 0b100; // interrupt on OCIE1B
+  OCR2A = OCR1B = 0; // compare
+  TCCR2B = TCCR1B = 0b00000011; // prescalar 64
+  // TCCR2A = 0b10000001; // sets Phase Correct, set/clear for OC2A
+  // TCCR1A = 0b00100001; // sets Phase Correct, set/clear for OC1B
 }
 
 // Convert percentages to PWM values
@@ -409,25 +417,17 @@ void forward(float dist, float speed = 75)
   dir = FORWARD;
 
   int val = pwmVal(speed);
-  // For now we will ignore dist and move
-  // forward indefinitely. We will fix this
-  // in Week 9.
-
-  // LF = Left forward pin, LR = Left reverse pin
-  // RF = Right forward pin, RR = Right reverse pin
-  // This will be replaced later with bare-metal code.
-
   //analogWrite(LF, (float)val * leftVal);
   //analogWrite(RF, val);
   //analogWrite(LR, 0);
   //analogWrite(RR, 0);
   
-  OCR0A = val;
-  OCR0B = 0;
-  OCR1A = 0;
-  OCR1B = (float)val * leftVal;
-  TCCR0A = 0b10000001;
-  TCCR1A = 0b10000001;
+  // Right motor
+  OCR0A = val; OCR0B = 0; // compare
+  TCCR0A = 0b10000001; // sets Phase Correct, set/clear for OC0A
+
+  // Left motor
+  OCR2A = 0; OCR1B = (float)val * leftVal; // compare
 }
 
 // Reverse Alex "dist" cm at speed "speed".
@@ -694,7 +694,8 @@ void loop() {
 
   // Uncomment the code below for Step 2 of Activity 3 in Week 8 Studio 2
 
-  // forward(0, 100);
+  forward(0, 30);
+  return;
 
   // Uncomment the code below for Week 9 Studio 2
 
