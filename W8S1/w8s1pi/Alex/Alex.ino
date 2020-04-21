@@ -356,23 +356,11 @@ void setupMotors()
         A1IN - Pin 5, PD5, OC0B
         A2IN - Pin 6, PD6, OC0A
         B1IN - Pin 10, PB2, OC1B
-        B2In - pIN 11, PB3, OC2A
+        B2In - pIN 11, PB3, OC1A
   */
   DDRB |= (PIN6 | PIN5);
   DDRD |= (PIN2 | PIN3);
   
-  TCNT0 = 0;
-  TCNT1 = 0;
-  TCNT2 = 0;
-  TIMSK0 |= 0b110; // OCIEA = 1 OCIEB = 1
-  TIMSK1 |= 0b100;
-  TIMSK2 |= 0b010;
- 
-  TCCR0B = 0b00000011;
-  TCCR1B = 0b00000011;
-  TCCR2B = 0b00000011;
-  
-  sei();
 
 }
 
@@ -381,7 +369,15 @@ void setupMotors()
 // blank.
 void startMotors()
 {
-
+  TCNT0 = 0;
+  TCNT1 = 0;
+  
+  TIMSK0 |= 0b110; // OCIEA = 1 OCIEB = 1
+  TIMSK1 |= 0b110;
+  
+  TCCR0B = 0b00000011;
+  TCCR1B = 0b00000011;
+  
 }
 
 // Convert percentages to PWM values
@@ -428,7 +424,7 @@ void forward(float dist, float speed = 75)
   
   OCR0A = val;
   OCR0B = 0;
-  OCR2A = 0;
+  OCR1A = 0;
   OCR1B = (float)val * leftVal;
   TCCR0A = 0b10000001;
   TCCR1A = 0b10000001;
@@ -464,7 +460,7 @@ void reverse(float dist, float speed = 75)
 //  analogWrite(RF, 0);
   OCR0A = 0;
   OCR0B = val;
-  OCR2A = (float)val * leftVal;
+  OCR1A = (float)val * leftVal;
   OCR1B = 0;
   TCCR0A = 0b00100001;
   TCCR1A = 0b10000001;
@@ -494,10 +490,10 @@ void left(float ang, float speed = 90)
 //  analogWrite(RR, 0);
   OCR0A = val;
   OCR0B = 0;
-  OCR2A = (float)val * leftVal;
+  OCR1A = (float)val * leftVal;
   OCR1B = 0;
   TCCR0A = 0b10000001;
-  TCCR2A = 0b00100001;
+  TCCR1A = 0b00100001;
 }
 
 // Turn Alex right "ang" degrees at speed "speed".
@@ -524,7 +520,7 @@ void right(float ang, float speed = 90)
 //  analogWrite(RF, 0);
   OCR0A = 0;
   OCR0B = val;
-  OCR2A = 0;
+  OCR1A = 0;
   OCR1B = (float)val * leftVal;
   TCCR0A = 0b00100001;
   TCCR1A = 0b10000001;
@@ -541,7 +537,7 @@ void stop()
 //  analogWrite(RR, 0);
   OCR0A = 0;
   OCR0B = 0;
-  OCR2A = 0;
+  OCR1A = 0;
   OCR1B = 0;  
 }
 
