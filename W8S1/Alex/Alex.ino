@@ -315,7 +315,7 @@ void startSerial()
 {
   // Empty for now. To be replaced with bare-metal code
   // later on.
-  
+
 }
 
 // Read the serial port. Returns the read character in
